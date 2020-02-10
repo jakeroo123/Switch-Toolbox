@@ -735,7 +735,7 @@ namespace Toolbox.Library
                         anim.SetFrame(0);
                         for (int i = 0; i <= anim.FrameCount; i++)
                         {
-                            anim.NextFrame(skeleton, false, true);
+                            anim.NextFrame(skeleton, false, true, bone.Text);
 
                             //Rotation
                             Vector3 eul = STMath.ToEulerAngles(bone.rot);
