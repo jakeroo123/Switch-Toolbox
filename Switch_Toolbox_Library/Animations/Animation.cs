@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -438,7 +438,7 @@ namespace Toolbox.Library.Animations
             return FrameCount;
         }
 
-        public void NextFrame(STSkeleton skeleton, bool isChild = false, bool AdancedNextFrame = false) 
+        public void NextFrame(STSkeleton skeleton, bool isChild = false, bool AdancedNextFrame = false, string bn = "") 
         {
             if (Frame > FrameCount) return;
 
@@ -461,6 +461,8 @@ namespace Toolbox.Library.Animations
                 STBone b = null;
                 b = skeleton.GetBone(node.Text);
                 if (b == null) continue;
+
+                if (bn != "" && bn != node.Text) continue; //If a bone name is provided, skip any bones that aren't that bone. 
 
                 b.UseSegmentScaleCompensate = node.UseSegmentScaleCompensate;
 
