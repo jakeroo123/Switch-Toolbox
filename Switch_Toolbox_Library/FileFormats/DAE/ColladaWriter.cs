@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -500,10 +500,17 @@ namespace Toolbox.Library.Collada
             Writer.WriteAttributeString("sid", joint.Name);
             Writer.WriteAttributeString("type", "JOINT");
 
-            Writer.WriteStartElement("matrix");
-            Writer.WriteAttributeString("sid", "transform");
-            Writer.WriteString(string.Join(" ", joint.Transform));
-            Writer.WriteEndElement();
+            if (Settings.UseMatrixTransform)
+            {
+                Writer.WriteStartElement("matrix");
+                Writer.WriteAttributeString("sid", "transform");
+                Writer.WriteString(string.Join(" ", joint.Transform));
+                Writer.WriteEndElement();
+            }
+            else
+            {
+                WriteTransform(joint.Scale, joint.Rotate, joint.Translate);
+            }
 
             foreach (var child in GetChildren(joint))
             {
@@ -780,10 +787,18 @@ namespace Toolbox.Library.Collada
             Writer.WriteAttributeString("name", "Armature");
             Writer.WriteAttributeString("type", "NODE");
 
-            Writer.WriteStartElement("matrix");
-            Writer.WriteAttributeString("sid", "transform");
-            Writer.WriteString("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1");
-            Writer.WriteEndElement();
+
+            if (Settings.UseMatrixTransform)
+            {
+                Writer.WriteStartElement("matrix");
+                Writer.WriteAttributeString("sid", "transform");
+                Writer.WriteString("1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1");
+                Writer.WriteEndElement();
+            }
+            else
+            {
+                WriteTransform(new float[] { 1, 1, 1 }, new float[] { 0, 0, 0 }, new float[] { 0, 0, 0 });
+            }
 
             foreach (var joint in Joints)
                 if (joint.ParentIndex == -1)
@@ -906,6 +921,303 @@ namespace Toolbox.Library.Collada
                 AttributeIdList.Add(name, 0);
                 return name;
             }
+        }
+
+        public void StartLibraryAnimations()
+        {
+            Writer.WriteStartElement("library_animations");
+        }
+
+        //jakeroo123: Write an animation for scale or translate with a Vector3 array.
+        public void WriteAnimationVector(string name, float[] frames, string[] interp, OpenTK.Vector3[] values, string target)
+        {
+
+            Writer.WriteStartElement("animation");
+            Writer.WriteAttributeString("id", name + "_id");
+            Writer.WriteAttributeString("name", name);
+            { //Animation Element
+
+                //TIME
+
+                Writer.WriteStartElement("source");
+                Writer.WriteAttributeString("id", name + "_frame_id");
+                Writer.WriteAttributeString("name", name + "_frame");
+                { //Frame Source Element
+                    Writer.WriteStartElement("float_array");
+                    Writer.WriteAttributeString("id", name + "_frame_array_id");
+                    Writer.WriteAttributeString("count", frames.Length.ToString());
+                    Writer.WriteString(string.Join(" ", frames));
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("technique_common");
+                    {
+                        Writer.WriteStartElement("accessor");
+                        Writer.WriteAttributeString("source", "#" + name + "_frame_array_id");
+                        Writer.WriteAttributeString("count", frames.Length.ToString());
+                        Writer.WriteAttributeString("stride", "1");
+                        { //The Accessor
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "TIME");
+                            Writer.WriteAttributeString("type", "float");
+                            Writer.WriteEndElement();
+                        }
+                        Writer.WriteEndElement();
+                    }
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //INTERPOLATION
+
+                Writer.WriteStartElement("source");
+                Writer.WriteAttributeString("id", name + "_interp_id");
+                Writer.WriteAttributeString("name", name + "_interp");
+                { //Interpolation Source Element
+                    Writer.WriteStartElement("Name_array");
+                    Writer.WriteAttributeString("id", name + "_interp_array_id");
+                    Writer.WriteAttributeString("count", interp.Length.ToString());
+                    Writer.WriteString(string.Join(" ", interp));
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("technique_common");
+                    {
+                        Writer.WriteStartElement("accessor");
+                        Writer.WriteAttributeString("source", "#" + name + "_interp_array_id");
+                        Writer.WriteAttributeString("count", interp.Length.ToString());
+                        Writer.WriteAttributeString("stride", "1");
+                        { //The Accessor
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "INTERPOLATION");
+                            Writer.WriteAttributeString("type", "Name");
+                            Writer.WriteEndElement();
+                        }
+                        Writer.WriteEndElement();
+                    }
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //POSE
+
+                Writer.WriteStartElement("source");
+                Writer.WriteAttributeString("id", name + "_pose_id");
+                Writer.WriteAttributeString("name", name + "_pose");
+                { //Interpolation Source Element
+                    Writer.WriteStartElement("float_array");
+                    Writer.WriteAttributeString("id", name + "_pose_array_id");
+                    Writer.WriteAttributeString("count", (values.Length*3).ToString());
+                    float[] values_split = new float[values.Length * 3];
+                    for (int i = 0; i < values.Length; i++)
+                    {
+                        values_split[i * 3] = values[i].X;
+                        values_split[i * 3 + 1] = values[i].Y;
+                        values_split[i * 3 + 2] = values[i].Z;
+                    }
+                    Writer.WriteString(string.Join(" ", values_split));
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("technique_common");
+                    {
+                        Writer.WriteStartElement("accessor");
+                        Writer.WriteAttributeString("source", "#" + name + "_pose_array_id");
+                        Writer.WriteAttributeString("count", values.Length.ToString());
+                        Writer.WriteAttributeString("stride", "3");
+                        { //The Accessor
+
+                            //X
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "X");
+                            Writer.WriteAttributeString("type", "float");
+                            Writer.WriteEndElement();
+
+                            //Y
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "Y");
+                            Writer.WriteAttributeString("type", "float");
+                            Writer.WriteEndElement();
+
+                            //Z
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "Z");
+                            Writer.WriteAttributeString("type", "float");
+                            Writer.WriteEndElement();
+                        }
+                        Writer.WriteEndElement();
+                    }
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //SAMPLER
+
+                Writer.WriteStartElement("sampler");
+                Writer.WriteAttributeString("id", name + "_samp");
+                Writer.WriteAttributeString("name", name + "_samp");
+                {
+                    Writer.WriteStartElement("input");
+                    Writer.WriteAttributeString("semantic", "INPUT");
+                    Writer.WriteAttributeString("source", "#" + name + "_frame_id");
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("input");
+                    Writer.WriteAttributeString("semantic", "INTERPOLATION");
+                    Writer.WriteAttributeString("source", "#" + name + "_interp_id");
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("input");
+                    Writer.WriteAttributeString("semantic", "OUTPUT");
+                    Writer.WriteAttributeString("source", "#" + name + "_pose_id");
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //CHANNEL
+                Writer.WriteStartElement("channel");
+                Writer.WriteAttributeString("source", "#" + name + "_samp");
+                Writer.WriteAttributeString("target", target);
+                Writer.WriteEndElement();
+
+            }
+            Writer.WriteEndElement();
+
+        }
+
+        //jakeroo123: Write an angle animation with a float array
+        public void WriteAnimationAngle(string name, float[] frames, string[] interp, float[] values, string target)
+        {
+
+            Writer.WriteStartElement("animation");
+            Writer.WriteAttributeString("id", name + "_id");
+            Writer.WriteAttributeString("name", name);
+            { //Animation Element
+
+                //TIME
+
+                Writer.WriteStartElement("source");
+                Writer.WriteAttributeString("id", name + "_frame_id");
+                Writer.WriteAttributeString("name", name + "_frame");
+                { //Frame Source Element
+                    Writer.WriteStartElement("float_array");
+                    Writer.WriteAttributeString("id", name + "_frame_array_id");
+                    Writer.WriteAttributeString("count", frames.Length.ToString());
+                    Writer.WriteString(string.Join(" ", frames));
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("technique_common");
+                    {
+                        Writer.WriteStartElement("accessor");
+                        Writer.WriteAttributeString("source", "#" + name + "_frame_array_id");
+                        Writer.WriteAttributeString("count", frames.Length.ToString());
+                        Writer.WriteAttributeString("stride", "1");
+                        { //The Accessor
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "TIME");
+                            Writer.WriteAttributeString("type", "float");
+                            Writer.WriteEndElement();
+                        }
+                        Writer.WriteEndElement();
+                    }
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //INTERPOLATION
+
+                Writer.WriteStartElement("source");
+                Writer.WriteAttributeString("id", name + "_interp_id");
+                Writer.WriteAttributeString("name", name + "_interp");
+                { //Interpolation Source Element
+                    Writer.WriteStartElement("Name_array");
+                    Writer.WriteAttributeString("id", name + "_interp_array_id");
+                    Writer.WriteAttributeString("count", interp.Length.ToString());
+                    Writer.WriteString(string.Join(" ", interp));
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("technique_common");
+                    {
+                        Writer.WriteStartElement("accessor");
+                        Writer.WriteAttributeString("source", "#" + name + "_interp_array_id");
+                        Writer.WriteAttributeString("count", interp.Length.ToString());
+                        Writer.WriteAttributeString("stride", "1");
+                        { //The Accessor
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "INTERPOLATION");
+                            Writer.WriteAttributeString("type", "Name");
+                            Writer.WriteEndElement();
+                        }
+                        Writer.WriteEndElement();
+                    }
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //POSE
+
+                Writer.WriteStartElement("source");
+                Writer.WriteAttributeString("id", name + "_pose_id");
+                Writer.WriteAttributeString("name", name + "_pose");
+                { //Interpolation Source Element
+                    Writer.WriteStartElement("float_array");
+                    Writer.WriteAttributeString("id", name + "_pose_array_id");
+                    Writer.WriteAttributeString("count", values.Length.ToString());
+                    Writer.WriteString(string.Join(" ", values));
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("technique_common");
+                    {
+                        Writer.WriteStartElement("accessor");
+                        Writer.WriteAttributeString("source", "#" + name + "_pose_array_id");
+                        Writer.WriteAttributeString("count", values.Length.ToString());
+                        Writer.WriteAttributeString("stride", "1");
+                        { //The Accessor
+                            Writer.WriteStartElement("param");
+                            Writer.WriteAttributeString("name", "ANGLE");
+                            Writer.WriteAttributeString("type", "float");
+                            Writer.WriteEndElement();
+                        }
+                        Writer.WriteEndElement();
+                    }
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //SAMPLER
+
+                Writer.WriteStartElement("sampler");
+                Writer.WriteAttributeString("id", name + "_samp");
+                Writer.WriteAttributeString("name", name + "_samp");
+                {
+                    Writer.WriteStartElement("input");
+                    Writer.WriteAttributeString("semantic", "INPUT");
+                    Writer.WriteAttributeString("source", "#" + name + "_frame_id");
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("input");
+                    Writer.WriteAttributeString("semantic", "INTERPOLATION");
+                    Writer.WriteAttributeString("source", "#" + name + "_interp_id");
+                    Writer.WriteEndElement();
+
+                    Writer.WriteStartElement("input");
+                    Writer.WriteAttributeString("semantic", "OUTPUT");
+                    Writer.WriteAttributeString("source", "#" + name + "_pose_id");
+                    Writer.WriteEndElement();
+                }
+                Writer.WriteEndElement();
+
+                //CHANNEL
+                Writer.WriteStartElement("channel");
+                Writer.WriteAttributeString("source", "#" + name + "_samp");
+                Writer.WriteAttributeString("target", target);
+                Writer.WriteEndElement();
+
+            }
+            Writer.WriteEndElement();
+
+        }
+
+        public void EndLibraryAnimations()
+        {
+            Writer.WriteEndElement();
         }
 
         public void Dispose()
