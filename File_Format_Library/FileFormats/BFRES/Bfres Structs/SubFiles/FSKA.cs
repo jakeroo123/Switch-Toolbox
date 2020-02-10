@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 using Syroot.NintenTools.NSW.Bfres;
@@ -221,6 +221,15 @@ namespace Bfres.Structs
                 else
                     System.IO.File.WriteAllText(FileName, Newtonsoft.Json.JsonConvert.SerializeObject(SkeletalAnim, 
                         Newtonsoft.Json.Formatting.Indented));
+            }
+            else if (ext == ".dae")
+            {
+                STSkeleton skeleton = GetActiveSkeleton();
+
+                if (skeleton != null)
+                    DAE.ExportAnimation(FileName,this,skeleton);
+                else
+                    throw new Exception("No skeleton found to assign!");
             }
         }
 
