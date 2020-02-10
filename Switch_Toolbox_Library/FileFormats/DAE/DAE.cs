@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -38,6 +38,8 @@ namespace Toolbox.Library
 
             public string ImageExtension = ".png";
             public string ImageFolder = "";
+
+            public bool UseMatrixTransform = false;
         }
 
         public class Version
@@ -47,6 +49,7 @@ namespace Toolbox.Library
             public int Micro = 1;
         }
 
+        const float Rad2Deg = 180f / (float) Math.PI;
 
         public static void Export(string FileName, ExportSettings settings, STGenericObject mesh)
         {
@@ -247,7 +250,7 @@ namespace Toolbox.Library
                         writer.AddJoint(bone.Text, bone.parentIndex == -1 ? "" :
                             skeleton.bones[bone.parentIndex].Text, Transform, InvTransform,
                             new float[3] { bone.Position.X, bone.Position.Y, bone.Position.Z },
-                            new float[3] { bone.EulerRotation.X, bone.EulerRotation.Y, bone.EulerRotation.Z },
+                            new float[3] { bone.EulerRotation.X * Rad2Deg, bone.EulerRotation.Y * Rad2Deg, bone.EulerRotation.Z * Rad2Deg },
                             new float[3] { bone.Scale.X, bone.Scale.Y, bone.Scale.Z });
                     }
                 }
@@ -656,6 +659,220 @@ namespace Toolbox.Library
                 objects.Add(mesh);
             }
             return objects;
+        }
+
+        //jakeroo123's animation adding code.
+        public static void ExportAnimation(string FileName, Toolbox.Library.Animations.Animation anim = null, STSkeleton skeleton = null, List<int> NodeArray = null)
+        {
+            //Always use the same settings
+            ExportSettings settings = new ExportSettings();
+            settings.SuppressConfirmDialog = true;
+            settings.UseMatrixTransform = false;
+
+            List<string> failedTextureExport = new List<string>();
+
+            STProgressBar progressBar = new STProgressBar();
+            progressBar.Task = "Exporting Animation \""  +anim.Text + "\"...";
+            progressBar.Value = 0;
+            progressBar.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            progressBar.Show();
+            progressBar.Refresh();
+
+            /* I don't see any way to use this
+            if (settings.UseOldExporter)
+            {
+                AssimpSaver saver = new AssimpSaver();
+                STGenericModel model = new STGenericModel();
+                model.Objects = Meshes;
+                model.Materials = Materials;
+                saver.SaveFromModel(model, FileName, Textures, skeleton, NodeArray);
+                return;
+            }
+            */
+
+            string TexturePath = System.IO.Path.GetDirectoryName(FileName);
+
+            using (ColladaWriter writer = new ColladaWriter(FileName, settings))
+            {
+                writer.WriteAsset();
+
+                //This is where the magic happens - Iterate through bones, and add animations.
+                if (anim!=null && skeleton!=null)
+                {
+                    writer.StartLibraryAnimations();
+
+                    float[] frames = new float[anim.FrameCount + 1];
+
+                    for (int i = 0; i <= anim.FrameCount; i++)
+                    {
+                        frames[i] = i / 30f; //DAE appears to save frame times - This is saving the animation as 30 FPS, regardless of anything else.
+                    }
+
+                    string[] interp = new string[anim.FrameCount + 1];
+
+                    for (int i = 0; i <= anim.FrameCount; i++)
+                    {
+                        interp[i] = "LINEAR"; //Just use linear.
+                    }
+
+                    foreach (STBone bone in skeleton.bones)
+                    {
+                        skeleton.reset();
+
+                        string aid = anim.Text + "_" + bone.Text; //The prefix for animation
+
+                        string bid = "Armature_" + bone.Text;
+
+                        Vector3 defaultRotation = bone.EulerRotation;
+
+                        //Three arrays, for 
+                        float[] rotateX = new float[anim.FrameCount + 1];
+                        float[] rotateY = new float[anim.FrameCount + 1];
+                        float[] rotateZ = new float[anim.FrameCount + 1];
+                        Vector3[] scale = new Vector3[anim.FrameCount + 1];
+                        Vector3[] translate = new Vector3[anim.FrameCount + 1];
+
+                        anim.SetFrame(0);
+                        for (int i = 0; i <= anim.FrameCount; i++)
+                        {
+                            anim.NextFrame(skeleton, false, true);
+
+                            //Rotation
+                            Vector3 eul = STMath.ToEulerAngles(bone.rot);
+                            rotateX[i] = eul.X * Rad2Deg; //- defaultRotation.X;
+                            rotateY[i] = eul.Y * Rad2Deg; //- defaultRotation.Y;
+                            rotateZ[i] = eul.Z * Rad2Deg; //- defaultRotation.Z;
+
+                            //Scaling and translation
+                            scale[i] = bone.GetScale();
+                            translate[i] = bone.GetPosition();
+
+                        }
+
+                        writer.WriteAnimationVector(aid + "_translate", frames, interp, translate, bid + "/location");
+
+                        writer.WriteAnimationAngle(aid + "_rotateX", frames, interp, rotateX, bid + "/rotationX.ANGLE");
+
+                        writer.WriteAnimationAngle(aid + "_rotateY", frames, interp, rotateY, bid + "/rotationY.ANGLE");
+
+                        writer.WriteAnimationAngle(aid + "_rotateZ", frames, interp, rotateZ, bid + "/rotationZ.ANGLE");
+
+                        writer.WriteAnimationVector(aid + "_scale", frames, interp, scale, bid + "/scale");
+
+                    }
+
+                    writer.EndLibraryAnimations();
+                }
+
+                skeleton.reset();
+
+                //Don't bother exporting any textures - It's not really necessary, at this point.
+                writer.WriteLibraryImages();
+
+                if (skeleton != null)
+                {
+                    //Don't bother searching for rigging, because the mesh will simply be empty.
+
+                    foreach (var bone in skeleton.bones)
+                    {
+
+                        //Set the inverse matrix
+                        var inverse = skeleton.GetBoneTransform(bone).Inverted();
+                        var transform = bone.GetTransform();
+
+                        float[] Transform = new float[] {
+                       transform.M11, transform.M21, transform.M31, transform.M41,
+                       transform.M12, transform.M22, transform.M32, transform.M42,
+                       transform.M13, transform.M23, transform.M33, transform.M43,
+                       transform.M14, transform.M24, transform.M34, transform.M44
+                        };
+
+                        float[] InvTransform = new float[] {
+                      inverse.M11, inverse.M21, inverse.M31, inverse.M41,
+                      inverse.M12, inverse.M22, inverse.M32, inverse.M42,
+                      inverse.M13, inverse.M23, inverse.M33, inverse.M43,
+                      inverse.M14, inverse.M24, inverse.M34, inverse.M44
+                        };
+
+                        writer.AddJoint(bone.Text, bone.parentIndex == -1 ? "" :
+                            skeleton.bones[bone.parentIndex].Text, Transform, InvTransform,
+                            new float[3] { bone.Position.X, bone.Position.Y, bone.Position.Z },
+                            new float[3] { bone.EulerRotation.X * Rad2Deg, bone.EulerRotation.Y * Rad2Deg, bone.EulerRotation.Z * Rad2Deg },
+                            new float[3] { bone.Scale.X, bone.Scale.Y, bone.Scale.Z });
+                    }
+                }
+
+
+                writer.StartLibraryGeometries();
+                //Try to not write meshes? Let's hope this works.
+                writer.EndGeometrySection();
+            }
+
+            progressBar?.Close();
+
+        }
+
+        public static void SaveAnimation(ColladaWriter writer, Toolbox.Library.Animations.Animation anim, STSkeleton Skeleton)
+        {
+            writer.StartLibraryAnimations();
+
+            float[] frames = new float[anim.FrameCount];
+
+            for (int i = 0; i < anim.FrameCount; i++)
+            {
+                frames[i] = i / 30f; //DAE appears to save frame times - This is saving the animation as 30 FPS, regardless of anything else.
+            }
+
+            string[] interp = new string[anim.FrameCount];
+
+            for (int i = 0; i < anim.FrameCount; i++)
+            {
+                interp[i] = "LINEAR"; //Just use linear.
+            }
+
+            foreach (STBone b in Skeleton.bones)
+            {
+                string aid = anim.Text + "_" + b.Text; //The prefix for animation
+
+                string bid = "Armature_" + b.Text;
+
+                //Three arrays, for 
+                float[] rotateX = new float[anim.FrameCount];
+                float[] rotateY = new float[anim.FrameCount];
+                float[] rotateZ = new float[anim.FrameCount];
+                Vector3[] scale = new Vector3[anim.FrameCount];
+                Vector3[] translate = new Vector3[anim.FrameCount];
+
+                anim.SetFrame(0);
+                for (int i = 0; i < anim.FrameCount; i++)
+                {
+                    anim.NextFrame(Skeleton, false, true);
+
+                    //Rotation
+                    Vector3 eul = STMath.ToEulerAngles(b.rot);
+                    rotateX[i] = eul.X;
+                    rotateY[i] = eul.Y;
+                    rotateZ[i] = eul.Z;
+
+                    //Scaling and translation
+                    scale[i] = b.GetScale();
+                    translate[i] = b.GetPosition();
+
+                }
+
+                writer.WriteAnimationVector(aid + "_translate", frames, interp, translate, bid + " /translate");
+
+                writer.WriteAnimationAngle(aid + "_rotateX", frames, interp, rotateX, bid + "/rotateX.ANGLE");
+
+                writer.WriteAnimationAngle(aid + "_rotateY", frames, interp, rotateY, bid + "/rotateY.ANGLE");
+
+                writer.WriteAnimationAngle(aid + "_rotateZ", frames, interp, rotateZ, bid + "/rotateZ.ANGLE");
+
+                writer.WriteAnimationVector(aid + "_scale", frames, interp, scale, bid + " /scale");
+
+            }
+
+            writer.EndLibraryAnimations();
         }
     }
 }
