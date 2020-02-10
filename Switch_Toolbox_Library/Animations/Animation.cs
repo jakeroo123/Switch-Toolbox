@@ -516,7 +516,7 @@ namespace Toolbox.Library.Animations
             if (AdancedNextFrame)
             {
                 Frame++;
-                if (Frame >= FrameCount)
+                if (Frame > FrameCount)
                     Frame = 0;
             }
 
