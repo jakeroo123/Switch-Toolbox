@@ -25,9 +25,6 @@ namespace LayoutBXLYT.Cafe
             }
         }
 
-        [DisplayName("Parts Flag"), CategoryAttribute("Flags")]
-        public byte PaneMagFlags { get; set; }
-
         [DisplayName("Influence Alpha"), CategoryAttribute("Alpha")]
         public override bool InfluenceAlpha
         {
@@ -40,9 +37,6 @@ namespace LayoutBXLYT.Cafe
                     _flags1 &= 0xFD;
             }
         }
-
-        [DisplayName("User Data Info"), CategoryAttribute("User Data")]
-        public string UserDataInfo { get; set; }
 
         [DisplayName("User Data"), CategoryAttribute("User Data")]
         public UserData UserData { get; set; }
@@ -120,6 +114,7 @@ namespace LayoutBXLYT.Cafe
             originY = (OriginY)(mainorigin / 4);
             ParentOriginX = (OriginX)(parentorigin % 4);
             ParentOriginY = (OriginY)(parentorigin / 4);
+            UserData = new USD1();
         }
 
         public override void Write(FileWriter writer, LayoutHeader header)

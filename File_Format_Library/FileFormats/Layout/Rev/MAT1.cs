@@ -70,7 +70,7 @@ namespace LayoutBXLYT.Revolution
         public TevSwapModeTable TevSwapModeTable { get; set; } = new TevSwapModeTable();
         public List<BxlytTextureTransform> IndirectTexTransforms { get; set; }
 
-        public List<IndirectTextureOrderEntry> IndirectTextureOrderEntries { get; set; }
+        public List<IndirectStage> IndirectStages { get; set; }
 
         private uint flags;
 
@@ -86,6 +86,20 @@ namespace LayoutBXLYT.Revolution
         {
             Material mat = new Material();
             return mat;
+        }
+
+        public override bool RemoveTexCoordSources(int index)
+        {
+            foreach (var texGen in TexCoordGens)
+            {
+                //Shift all tex coord types down when an index is removed
+                if (texGen.Source >= TexCoordGenSource.GX_TG_TEX1 &&
+                    texGen.Source < TexCoordGenSource.GX_TG_TEX7)
+                {
+                    texGen.Source = texGen.Source - 1;
+                }
+            }
+            return true;
         }
 
         public bool HasMaterialColor { get; set; }
@@ -106,7 +120,7 @@ namespace LayoutBXLYT.Revolution
             TextureTransforms = new BxlytTextureTransform[0];
             TexCoordGens = new List<TexCoordGenEntry>();
             IndirectTexTransforms = new List<BxlytTextureTransform>();
-            IndirectTextureOrderEntries = new List<IndirectTextureOrderEntry>();
+            IndirectStages = new List<IndirectStage>();
             TevSwapModeTable = new TevSwapModeTable();
             ChanControl = new ChanCtrl();
             BlackColor = new STColor8(0, 0, 0, 0);
@@ -144,7 +158,7 @@ namespace LayoutBXLYT.Revolution
             AlphaCompare = new AlphaCompare();
             TexCoordGens = new List<TexCoordGenEntry>();
             IndirectTexTransforms = new List<BxlytTextureTransform>();
-            IndirectTextureOrderEntries = new List<IndirectTextureOrderEntry>();
+            IndirectStages = new List<IndirectStage>();
 
             Name = reader.ReadString(0x14, true);
 
@@ -197,7 +211,7 @@ namespace LayoutBXLYT.Revolution
                 IndirectTexTransforms.Add(new BxlytTextureTransform(reader));
 
             for (int i = 0; i < indTexOrderCount; i++)
-                IndirectTextureOrderEntries.Add(new IndirectTextureOrderEntry(reader));
+                IndirectStages.Add(new IndirectStage(reader));
 
             for (int i = 0; i < tevStagesCount; i++)
                 TevStages[i] = new TevStage(reader, header);
@@ -211,6 +225,39 @@ namespace LayoutBXLYT.Revolution
 
         public void Write(FileWriter writer, LayoutHeader header)
         {
+            if (MatColor != STColor8.White)
+                HasMaterialColor = true;
+            if (!ChanControl.HasDefaults())
+                HasChannelControl = true;
+            if (!BlendMode.HasDefaults())
+                HasBlendMode = true;
+            if (!((AlphaCompare)AlphaCompare).HasDefaults())
+                HasAlphaCompare = true;
+
+            flags = 0;
+            if (HasMaterialColor)
+                flags |= (1 << 27);
+
+            if (HasChannelControl)
+                flags |= (1 << 25);
+
+            if (HasBlendMode)
+                flags |= (1 << 24);
+
+            if (HasAlphaCompare)
+                flags |= (1 << 23);
+
+            flags |= (uint)((TevStages.Length & 31) << 18);
+            flags |= (uint)((IndirectStages.Count & 0x7) << 15);
+            flags |= (uint)((IndirectTexTransforms.Count & 0x3) << 13);
+            if (HasTevSwapTable)
+                flags |= (1 << 12);
+
+            flags |= (uint)((TexCoordGens.Count & 0xF) << 8);
+            flags |= (uint)((TextureTransforms.Length & 0xF) << 4);
+            flags |= (uint)((TextureMaps.Length & 0xF) << 0);
+
+
             writer.WriteString(Name, 0x14);
             writer.Write(BlackColor.ToColor16());
             writer.Write(WhiteColor.ToColor16());
@@ -225,7 +272,7 @@ namespace LayoutBXLYT.Revolution
                 ((TextureRef)TextureMaps[i]).Write(writer);
 
             for (int i = 0; i < TextureTransforms.Length; i++)
-                ((BxlytTextureTransform)TextureTransforms[i]).Write(writer);
+                TextureTransforms[i].Write(writer);
 
             for (int i = 0; i < TexCoordGens.Count; i++)
                 TexCoordGens[i].Write(writer);
@@ -240,8 +287,8 @@ namespace LayoutBXLYT.Revolution
             for (int i = 0; i < IndirectTexTransforms.Count; i++)
                 IndirectTexTransforms[i].Write(writer);
 
-            for (int i = 0; i < IndirectTextureOrderEntries.Count; i++)
-                IndirectTextureOrderEntries[i].Write(writer);
+            for (int i = 0; i < IndirectStages.Count; i++)
+                IndirectStages[i].Write(writer);
 
             for (int i = 0; i < TevStages.Length; i++)
                 ((TevStage)TevStages[i]).Write(writer);

@@ -293,7 +293,8 @@ namespace LayoutBXLYT
                     {
                         AnimationPanel?.Reset();
                         foreach (ListViewItem item in LayoutAnimList.GetSelectedAnimations)
-                            UpdateAnimationPlayer((BxlanHeader)item.Tag);
+                            if (item.Tag is BxlanHeader)
+                                UpdateAnimationPlayer((BxlanHeader)item.Tag);
                     }
                 }
             }
@@ -565,6 +566,10 @@ namespace LayoutBXLYT
             LayoutTextureList?.LoadTextures(this, ActiveLayout, Textures);
         }
 
+        public void DeselectTextureList() {
+            LayoutTextureList?.DeselectTextureList();
+        }
+
         private void OnAnimationPlaying(object sender, EventArgs e)
         {
             if (LayoutAnimEditor != null)
@@ -704,10 +709,8 @@ namespace LayoutBXLYT
                         LoadBxlyt(((BRLYT)layouts[0]).header);
                 }
             }
-            else if (file is BFLAN)
-                LoadBxlan(((BFLAN)file).BxlanHeader);
-            else if (file is BRLAN)
-                LoadBxlan(((BRLAN)file).BxlanHeader);
+            else if (file is BXLAN)
+                LoadBxlan(((BXLAN)file).BxlanHeader);
             else if (file is BNTX)
             {
 

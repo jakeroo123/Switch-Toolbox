@@ -43,12 +43,29 @@ namespace FirstPlugin
 
         bool useMuunt = true;
 
+        bool IsXML => xmlToolstrip.Checked;
+        bool IsOldXML => xmlOldToolstrip.Checked;
+
         private TextEditor textEditor;
+        private STToolStipMenuItem xmlToolstrip;
+        private STToolStipMenuItem xmlOldToolstrip;
+        private STToolStipMenuItem yamlToolstrip;
 
         public ByamlEditor()
         {
             InitializeComponent();
             Reload();
+
+            xmlOldToolstrip = new STToolStipMenuItem("XML (Toolbox/Editorcore)", null, OnFormatChanged);
+            xmlToolstrip = new STToolStipMenuItem("XML (YamlConv)", null, OnFormatChanged);
+            yamlToolstrip = new STToolStipMenuItem("YAML", null, OnFormatChanged);
+
+            if (Runtime.ByamlEditor.TextFormat == Runtime.ByamlTextFormat.YAML)
+                yamlToolstrip.Checked = true;
+            else if (Runtime.ByamlEditor.TextFormat == Runtime.ByamlTextFormat.XML_YamlConv)
+                xmlToolstrip.Checked = true;
+            else if (Runtime.ByamlEditor.TextFormat == Runtime.ByamlTextFormat.XML_EditorCore)
+                xmlOldToolstrip.Checked = true;
         }
 
         public ByamlEditor(System.Collections.IEnumerable by, bool _pathSupport, ushort _ver, ByteOrder defaultOrder = ByteOrder.LittleEndian, bool IsSaveDialog = false, BYAML byaml = null)
@@ -104,7 +121,38 @@ namespace FirstPlugin
             textEditor.ClearContextMenus();
             textEditor.AddContextMenu("Decompile", TextEditorToYaml);
             textEditor.AddContextMenu("Compile", TextEditorFromYaml);
+
+            var formatMenu = new STToolStripItem("Change Formatting");
+            formatMenu.DropDownItems.Add(xmlOldToolstrip);
+            formatMenu.DropDownItems.Add(xmlToolstrip);
+            formatMenu.DropDownItems.Add(yamlToolstrip);
+
+            textEditor.AddContextMenu(formatMenu, TextEditorFromYaml);
+
             stPanel4.Controls.Add(textEditor);
+        }
+
+        private void OnFormatChanged(object sender, EventArgs e)
+        {
+            yamlToolstrip.Checked = false;
+            xmlToolstrip.Checked = false;
+            xmlOldToolstrip.Checked = false;
+
+            var menu = sender as STToolStipMenuItem;
+            menu.Checked = true;
+
+            if (yamlToolstrip.Checked)
+                Runtime.ByamlEditor.TextFormat = Runtime.ByamlTextFormat.YAML;
+            if (xmlToolstrip.Checked)
+                Runtime.ByamlEditor.TextFormat = Runtime.ByamlTextFormat.XML_YamlConv;
+            if (xmlOldToolstrip.Checked)
+                Runtime.ByamlEditor.TextFormat = Runtime.ByamlTextFormat.XML_EditorCore;
+
+            Toolbox.Library.Config.Save();
+
+            if (textEditor.GetText() != string.Empty) {
+                UpdateTextEditor();
+            }
         }
 
         void ParseBymlFirstNode()
@@ -719,15 +767,29 @@ namespace FirstPlugin
             }
         }
 
-        private void TextEditorToYaml(object sender, EventArgs e)
-        {
-            var format = (IConvertableTextFormat)FileFormat;
-            textEditor.FillEditor(((IConvertableTextFormat)FileFormat).ConvertToString());
+        private void TextEditorToYaml(object sender, EventArgs e) {
+            UpdateTextEditor();
+        }
 
-            if (format.TextFileType == TextFileType.Xml)
+        private void UpdateTextEditor() {
+            textEditor.IsXML = false;
+            textEditor.IsYAML = false;
+
+            if (IsXML)
+            {
+                textEditor.FillEditor(XmlByamlConverter.ToXML(FileFormat.BymlData));
                 textEditor.IsXML = true;
+            }
+            else if (IsOldXML)
+            {
+                textEditor.FillEditor(XmlConverter.ToXml(FileFormat.BymlData));
+                textEditor.IsXML = true;
+            }
             else
+            {
+                textEditor.FillEditor(YamlByamlConverter.ToYaml(FileFormat.BymlData));
                 textEditor.IsYAML = true;
+            }
         }
 
         private void TextEditorFromYaml(object sender, EventArgs e)
@@ -739,7 +801,16 @@ namespace FirstPlugin
             try
             {
                 if (FileFormat != null) {
-                    FileFormat.ConvertFromString(textEditor.GetText());
+                    if (IsXML)
+                        FileFormat.BymlData = XmlByamlConverter.FromXML(textEditor.GetText());
+                    else if (IsOldXML)
+                    {
+                        byte[] TextData = Encoding.Unicode.GetBytes(textEditor.GetText());
+                        StreamReader t = new StreamReader(new MemoryStream(TextData), Encoding.GetEncoding(932));
+                        FileFormat.BymlData = XmlConverter.ToByml(t.ReadToEnd());
+                    }
+                    else
+                        FileFormat.BymlData = YamlByamlConverter.FromYaml(textEditor.GetText());
                 }
             }
             catch (Exception ex)

@@ -94,6 +94,12 @@ namespace LayoutBXLYT
             }
         }
 
+        [DisplayName("Parts Flag"), CategoryAttribute("Flags")]
+        public byte PaneMagFlags { get; set; }
+
+        [DisplayName("User Data Info"), CategoryAttribute("User Data")]
+        public string UserDataInfo { get; set; }
+
         [DisplayName("Is Visible"), CategoryAttribute("Flags")]
         public virtual bool Visible { get; set; }
 
@@ -334,7 +340,7 @@ namespace LayoutBXLYT
 
         [Browsable(false)]
         [YamlIgnore]
-        public CustomRectangle Rectangle
+        public virtual CustomRectangle Rectangle
         {
             get
             {
@@ -681,6 +687,28 @@ namespace LayoutBXLYT
         }
     }
 
+    public enum TexGenMatrixType : byte
+    {
+        Matrix2x4 = 0
+    }
+
+    public enum TexGenType : byte
+    {
+        TextureCoord0 = 0,
+        TextureCoord1 = 1,
+        TextureCoord2 = 2,
+        OrthographicProjection = 3,
+        PaneBasedProjection = 4,
+        PerspectiveProjection = 5
+    }
+
+    public enum PartPaneScaling
+    {
+        Scaling = 0,
+        Ignore = 1,
+        FitBoundries = 2,
+    }
+
     public enum FilterMode
     {
         Near = 0,
@@ -721,8 +749,8 @@ namespace LayoutBXLYT
 
         public virtual WrapMode WrapModeU { get; set; }
         public virtual WrapMode WrapModeV { get; set; }
-        public virtual FilterMode MinFilterMode { get; set; }
-        public virtual FilterMode MaxFilterMode { get; set; }
+        public virtual FilterMode MinFilterMode { get; set; } = FilterMode.Linear;
+        public virtual FilterMode MaxFilterMode { get; set; } = FilterMode.Linear;
     }
 
     public class BxlytAlphaCompare
@@ -764,6 +792,14 @@ namespace LayoutBXLYT
             SourceFactor = GX2BlendFactor.SourceAlpha;
             DestFactor = GX2BlendFactor.SourceInvAlpha;
             LogicOp = GX2LogicOp.Set;
+        }
+
+        public bool HasDefaults()
+        {
+            return BlendOp == GX2BlendOp.Add &&
+                   SourceFactor == GX2BlendFactor.SourceAlpha &&
+                   DestFactor == GX2BlendFactor.SourceInvAlpha &&
+                   LogicOp == GX2LogicOp.Set;
         }
 
         public BxlytBlendMode(FileReader reader, BxlytHeader header)
@@ -835,6 +871,10 @@ namespace LayoutBXLYT
         public UserData()
         {
             Entries = new List<UserDataEntry>();
+        }
+
+        public virtual UserDataEntry CreateUserData() {
+            return new UserDataEntry();
         }
 
         public override void Write(FileWriter writer, LayoutHeader header)
@@ -1405,6 +1445,15 @@ namespace LayoutBXLYT
             return this.MemberwiseClone();
         }
 
+        public BxlytWindowContent(BxlytHeader header) {
+            LayoutFile = header;
+            ColorTopLeft = STColor8.White;
+            ColorTopRight = STColor8.White;
+            ColorBottomLeft = STColor8.White;
+            ColorBottomRight = STColor8.White;
+            TexCoords.Add(new TexCoord());
+        }
+
         public BxlytWindowContent(BxlytHeader header, string name)
         {
             LayoutFile = header;
@@ -1476,12 +1525,18 @@ namespace LayoutBXLYT
             return this.MemberwiseClone();
         }
 
+        public BxlytWindowFrame()
+        {
+
+        }
+
         public BxlytWindowFrame(BxlytHeader header, string materialName)
         {
             TextureFlip = WindowFrameTexFlip.None;
 
             var mat = header.CreateNewMaterial(materialName);
             MaterialIndex = (ushort)header.AddMaterial(mat);
+            Console.WriteLine($"NEW MAT {mat.Name} {MaterialIndex}");
             Material = mat;
         }
 
@@ -2364,6 +2419,16 @@ namespace LayoutBXLYT
             }
         }
 
+        /// <summary>
+        /// Removes any texture coordinate references when a texture coordinate is removed.
+        /// </summary>
+        /// <param name="index"></param>
+        /// <returns></returns>
+        public virtual bool RemoveTexCoordSources(int index)
+        {
+            return false;
+        }
+
         public virtual void AddTexture(string texture)
         {
             int index = ParentLayout.AddTexture(texture);
@@ -2421,6 +2486,18 @@ namespace LayoutBXLYT
 
         [DisplayName("Tev Stages"), CategoryAttribute("Tev")]
         public BxlytTevStage[] TevStages { get; set; }
+
+        [DisplayName("Texture Coordinate Params"), CategoryAttribute("Texture")]
+        public BxlytTexCoordGen[] TexCoordGens { get; set; }
+
+        [DisplayName("Projection Texture Coord Parameters"), CategoryAttribute("Texture")]
+        public ProjectionTexGenParam[] ProjTexGenParams { get; set; }
+    }
+
+    public class BxlytTexCoordGen
+    {
+        public TexGenMatrixType Matrix { get; set; }
+        public TexGenType Source { get; set; }
     }
 
     public class BxlytTevStage
@@ -2547,6 +2624,8 @@ namespace LayoutBXLYT
         public OpenTK.Vector2 TopRightPoint;
         public OpenTK.Vector2 BottomLeftPoint;
         public OpenTK.Vector2 BottomRightPoint;
+
+        public CustomRectangle() { }
 
         public CustomRectangle(OpenTK.Vector2 topLeft, OpenTK.Vector2 topRight,
             OpenTK.Vector2 bottomLeft, OpenTK.Vector2 bottomRight)

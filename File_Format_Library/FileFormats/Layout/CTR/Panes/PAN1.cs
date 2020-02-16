@@ -38,10 +38,6 @@ namespace LayoutBXLYT.CTR
             }
         }
 
-        public byte PartsScale { get; set; }
-
-        public byte PaneMagFlags { get; set; }
-
         [DisplayName("User Data"), CategoryAttribute("User Data")]
         public UserData UserData { get; set; }
 
@@ -97,6 +93,7 @@ namespace LayoutBXLYT.CTR
 
             originX = OriginXMap[(OriginXRev)(origin % 3)];
             originY = OriginYMap[(OriginYRev)(origin / 3)];
+            UserData = new USD1();
         }
 
         public override void Write(FileWriter writer, LayoutHeader header)

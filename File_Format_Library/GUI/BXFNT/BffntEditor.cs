@@ -10,11 +10,14 @@ using System.Windows.Forms;
 using Toolbox.Library.Forms;
 using Toolbox.Library;
 using LibEveryFileExplorer.GFX;
+using Toolbox.Library.IO;
 
 namespace FirstPlugin.Forms
 {
     public partial class BffntEditor : STUserControl, IFIleEditor
     {
+        public EventHandler OnFontEdited = null;
+
         public BffntEditor()
         {
             InitializeComponent();
@@ -34,9 +37,9 @@ namespace FirstPlugin.Forms
         private BitmapFont bitmapFont;
 
         private FFNT ActiveFile;
-        private BFFNT FileFormat;
+        private BXFNT FileFormat;
 
-        public void LoadFontFile(BFFNT fontFile)
+        public void LoadFontFile(BXFNT fontFile)
         {
             FileFormat = fontFile;
             ActiveFile = fontFile.bffnt;
@@ -129,18 +132,12 @@ namespace FirstPlugin.Forms
             bool IsBntx = ActiveFile.FontSection.TextureGlyph.BinaryTextureFile != null;
 
             if (IsBntx)
-            {
-                PanelImage = image.GetBitmap(ImageIndex);
-            }
+                PanelImage = image.GetComponentBitmap(image.GetBitmap(ImageIndex));
             else
-            {
-                PanelImage = image.GetBitmap();
-            }
+                PanelImage = image.GetComponentBitmap(image.GetBitmap());
 
-            if (PanelImage != null)
-            {
+            if (PanelImage != null && ActiveFile.Platform >= FFNT.PlatformType.Cafe)
                 PanelImage.RotateFlip(RotateFlipType.RotateNoneFlipY);
-            }
 
             FillCells();
 
@@ -168,7 +165,8 @@ namespace FirstPlugin.Forms
                 form.editorBase.Text = Text;
                 form.editorBase.Dock = DockStyle.Fill;
 
-                image.Parameters.FlipY = true;
+                if (ActiveFile.Platform >= FFNT.PlatformType.Cafe)
+                    image.Parameters.FlipY = true;
 
                 if (IsBntx)
                 {
@@ -211,6 +209,7 @@ namespace FirstPlugin.Forms
                 }
 
                 UpdateImagePanel(ImageIndex);
+                OnFontEdited?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -222,7 +221,8 @@ namespace FirstPlugin.Forms
                 var image = ActiveFile.FontSection.TextureGlyph.GetImageSheet(ImageIndex);
                 bool IsBntx = ActiveFile.FontSection.TextureGlyph.BinaryTextureFile != null;
 
-                image.Parameters.FlipY = true;
+                if (ActiveFile.Platform >= FFNT.PlatformType.Cafe)
+                    image.Parameters.FlipY = true;
 
                 if (IsBntx)
                     image.ExportArrayImage(ImageIndex);
@@ -331,6 +331,8 @@ namespace FirstPlugin.Forms
                 return;
 
             Graphics graphics = e.Graphics;
+
+            graphics.Clear(Color.FromArgb(30,30,30));
             graphics.DrawImage(PanelImage, 0.0f, 0.0f);
 
             if (ActiveFile == null)

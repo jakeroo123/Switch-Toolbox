@@ -87,6 +87,8 @@ namespace Toolbox.Library.Forms
             this.BackgroundImage = Properties.Resources.CheckerBackground;
             this.BackColor = Color.Transparent;
             this.MouseClick += OnMouseClick;
+            this.MouseMove += OnMouseMove;
+            this.MouseLeave += OnMouseLeave;
             this.SetStyle(
             ControlStyles.AllPaintingInWmPaint |
             ControlStyles.UserPaint |
@@ -103,23 +105,55 @@ namespace Toolbox.Library.Forms
             }
         }
 
+
+        private void OnMouseMove(object sender, MouseEventArgs e) {
+            if (dialogActive) return;
+
+            mouseLoc = e.Location;
+            Invalidate();
+        }
+
+        private void OnMouseLeave(object sender, EventArgs e) {
+            if (dialogActive) return;
+
+            mouseLoc = Point.Empty;
+        }
+
+        private void OnMouseUp(object sender, MouseEventArgs e) {
+        }
+
         private bool dialogActive;
         private STColorDialog colorDlg;
+        private Point mouseLoc = Point.Empty;
         private void OnMouseClick(object sender, MouseEventArgs e)
         {
             if (TopLeftHit == null) return;
 
             if (e.Button == MouseButtons.Left)
             {
+                if (!dialogActive) {
+                    mouseLoc = e.Location;
+                    this.Invalidate();
+                }
+      
+
                 if (TopLeftHit.IsHit(e.Location))
                      LoadColorDialog(TopLeftColor, 0);
-                if (TopRightHit.IsHit(e.Location))
+                else if (TopRightHit.IsHit(e.Location))
                     LoadColorDialog(TopRightColor, 1);
-                if (BottomLefttHit.IsHit(e.Location))
+                else if (BottomLeftHit.IsHit(e.Location))
                     LoadColorDialog(BottomLeftColor, 2);
-                if (BottomRightHit.IsHit(e.Location))
+                else if (BottomRightHit.IsHit(e.Location))
                     LoadColorDialog(BottomRightColor, 3);
-                if (AllHit.IsHit(e.Location))
+                else if (TopHit.IsHit(e.Location))
+                    LoadColorDialogSides(TopRightColor, TopLeftColor,  0);
+                else if (BottomHit.IsHit(e.Location))
+                    LoadColorDialogSides(BottomRightColor, BottomLeftColor, 1);
+                else if (RightHit.IsHit(e.Location))
+                    LoadColorDialogSides(TopRightColor, BottomRightColor, 2);
+                else if (LeftHit.IsHit(e.Location))
+                    LoadColorDialogSides(TopLeftColor, BottomLeftColor, 3);
+                else if (AllHit.IsHit(e.Location))
                 {
                     if (dialogActive)
                     {
@@ -132,7 +166,9 @@ namespace Toolbox.Library.Forms
                     colorDlg.Show();
                     colorDlg.FormClosed += delegate
                     {
+                        mouseLoc = Point.Empty;
                         dialogActive = false;
+                        this.Invalidate();
                     };
                     colorDlg.ColorChanged += delegate
                     {
@@ -149,8 +185,57 @@ namespace Toolbox.Library.Forms
                     };
                 }
             }
+        }
 
-            this.Invalidate();
+        private void LoadColorDialogSides(Color color1, Color color2, int index)
+        {
+            if (dialogActive)
+            {
+                colorDlg.Focus();
+                return;
+            }
+
+            Color[] colors = new Color[2]
+             { color1, color2 };
+
+            var color = Color.FromArgb(
+                    (int)colors.Average(a => a.A),
+                    (int)colors.Average(a => a.R),
+                    (int)colors.Average(a => a.G),
+                    (int)colors.Average(a => a.B));
+
+            dialogActive = true;
+            colorDlg = new STColorDialog(color);
+            colorDlg.FormClosed += delegate
+            {
+                mouseLoc = Point.Empty;
+                dialogActive = false;
+                this.Invalidate();
+            };
+            colorDlg.Show();
+            colorDlg.ColorChanged += delegate
+            {
+                if (index == 0)
+                {
+                    TopRightColor = colorDlg.NewColor;
+                    TopLeftColor = colorDlg.NewColor;
+                }
+                if (index == 1)
+                {
+                    BottomRightColor = colorDlg.NewColor;
+                    BottomLeftColor = colorDlg.NewColor;
+                }
+                if (index == 2)
+                {
+                    TopRightColor = colorDlg.NewColor;
+                    BottomRightColor = colorDlg.NewColor;
+                }
+                if (index == 3)
+                {
+                    TopLeftColor = colorDlg.NewColor;
+                    BottomLeftColor = colorDlg.NewColor;
+                }
+            };
         }
 
         private void LoadColorDialog(Color color, int index)
@@ -165,7 +250,9 @@ namespace Toolbox.Library.Forms
             colorDlg = new STColorDialog(color);
             colorDlg.FormClosed += delegate
             {
+                mouseLoc = Point.Empty;
                 dialogActive = false;
+                this.Invalidate();
             };
             colorDlg.Show();
             colorDlg.ColorChanged += delegate
@@ -183,9 +270,15 @@ namespace Toolbox.Library.Forms
 
         private Rectangle TopLeftHit;
         private Rectangle TopRightHit;
-        private Rectangle BottomLefttHit;
+        private Rectangle BottomLeftHit;
         private Rectangle BottomRightHit;
+        private Rectangle TopHit;
+        private Rectangle RightHit;
+        private Rectangle LeftHit;
+        private Rectangle BottomHit;
         private Rectangle AllHit;
+
+        private bool DisplayHitboxes = false;
 
         protected override void OnPaint(PaintEventArgs pe)
         {
@@ -243,12 +336,41 @@ namespace Toolbox.Library.Forms
             int halfWidth = r.Width / 2;
             int halfHeight = r.Height / 2;
 
-            int LeftX = 10;
-            int RightX = r.Width - 30;
-            int topY = 10;
-            int BottomY = r.Height - 25;
+            int LeftX = 0;
+            int RightX = r.Width - 32;
+            int topY = 0;
+            int BottomY = r.Height - 32;
 
             var font = new Font(this.Font, FontStyle.Bold);
+
+            const int hitSize = 32;
+            TopLeftHit = new Rectangle(LeftX, topY, hitSize, hitSize);
+            TopRightHit = new Rectangle(RightX, topY, hitSize, hitSize);
+            BottomLeftHit = new Rectangle(LeftX, BottomY, hitSize, hitSize);
+            BottomRightHit = new Rectangle(RightX, BottomY, hitSize, hitSize);
+            TopHit = new Rectangle(halfWidth - 16, topY, hitSize, hitSize);
+            BottomHit = new Rectangle(halfWidth - 16, BottomY, hitSize, hitSize);
+            LeftHit = new Rectangle(LeftX, halfHeight - 16, hitSize, hitSize);
+            RightHit = new Rectangle(RightX, halfHeight - 16, hitSize, hitSize);
+            AllHit = new Rectangle(halfWidth - 16, halfHeight - 16, hitSize, hitSize);
+
+            LeftX = 10;
+            RightX = r.Width - 30;
+            topY = 10;
+            BottomY = r.Height - 25;
+
+            if (DisplayHitboxes)
+            {
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Blue), TopLeftHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Purple), TopRightHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Green), BottomLeftHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Yellow), BottomRightHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Red), TopHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Red), RightHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Red), LeftHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Red), BottomHit);
+                pe.Graphics.FillRectangle(new SolidBrush(Color.Pink), AllHit);
+            }
 
             using (Brush br = new SolidBrush(AllColor.GrayScale(true).Inverse()))
                 pe.Graphics.DrawString("ALL", font, br, new Point(halfWidth - 10, halfHeight - 10));
@@ -264,16 +386,44 @@ namespace Toolbox.Library.Forms
 
             using (Brush br = new SolidBrush(BottomRightColor.GrayScale(true).Inverse()))
                 pe.Graphics.DrawString("BR", font, br, new Point(RightX, BottomY));
-            //  pe.Graphics.FillRectangle(linearGradientBrush, ClientRectangle);
 
-            const int hitSize = 40;
-            TopLeftHit = new Rectangle(LeftX, topY, hitSize, hitSize);
-            TopRightHit = new Rectangle(RightX, topY, hitSize, hitSize);
-            BottomLefttHit = new Rectangle(LeftX, BottomY, hitSize, hitSize);
-            BottomRightHit = new Rectangle(RightX, BottomY, hitSize, hitSize);
-            AllHit = new Rectangle(halfWidth - 10, halfHeight - 10, hitSize, hitSize);
+            if (mouseLoc != Point.Empty)
+            {
+                if (AllHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, AllHit);
+                if (TopLeftHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, TopLeftHit);
+                if (TopRightHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, TopRightHit);
+                if (BottomLeftHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, BottomLeftHit);
+                if (BottomRightHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, BottomRightHit);
+                if (TopHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, TopHit);
+                if (BottomHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, BottomHit);
+                if (RightHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, RightHit);
+                if (LeftHit.IsHit(mouseLoc))
+                    DrawSelectionOutline(pe, LeftHit);
+            }
 
             base.OnPaint(pe);
+        }
+
+        private void DrawSelectionOutline(PaintEventArgs pe, Rectangle rect) {
+            //Select entire regions
+            Rectangle selection = rect;
+            if (rect == TopHit || rect == BottomHit) {
+                selection = new Rectangle(0, rect.Y, pe.ClipRectangle.Width, rect.Height);
+            }
+            if (rect == LeftHit || rect == RightHit) {
+                selection = new Rectangle(rect.X,0, rect.Width, pe.ClipRectangle.Height);
+            }
+
+            pe.Graphics.DrawRectangle(new Pen(new SolidBrush(Color.Black), 1), new Rectangle(
+                selection.X + 1, selection.Y + 1, selection.Width - 1, selection.Height - 1));
         }
     }
 }

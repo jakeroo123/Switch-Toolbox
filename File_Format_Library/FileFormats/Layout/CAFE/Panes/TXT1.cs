@@ -238,7 +238,7 @@ namespace LayoutBXLYT.Cafe
             System.Drawing.Bitmap bitmap = null;
             foreach (var fontFile in FirstPlugin.PluginRuntime.BxfntFiles)
             {
-                if (Utils.CompareNoExtension(fontFile.Name, FontName))
+                if (Utils.CompareNoExtension(fontFile.FileName, FontName))
                     bitmap = fontFile.GetBitmap(Text, false, this);
             }
 
@@ -251,6 +251,8 @@ namespace LayoutBXLYT.Cafe
             layoutFile = header;
 
             long startPos = reader.Position - 84;
+
+            Console.WriteLine($"{Name}");
 
             TextLength = reader.ReadUInt16();
             MaxTextLength = reader.ReadUInt16();
@@ -301,7 +303,6 @@ namespace LayoutBXLYT.Cafe
                 reader.SeekBegin(startPos + nameOffset);
                 TextBoxName = reader.ReadZeroTerminatedString();
             }
-
 
             if (header.VersionMajor > 2 && PerCharTransformEnabled)
             {

@@ -124,6 +124,10 @@ namespace LayoutBXLYT
             isLoaded = true;
         }
 
+        public void DeselectTextureList() {
+            listViewCustom1.SelectedItems.Clear();
+        }
+
         private void listViewTpyeCB_SelectedIndexChanged(object sender, EventArgs e) {
             if (isLoaded)
                 listViewCustom1.View = (View)listViewTpyeCB.SelectedItem;
@@ -136,6 +140,7 @@ namespace LayoutBXLYT
                 return;
 
             temp = texture.GetComponentBitmap(temp, true);
+            temp = BitmapExtension.CreateImageThumbnail(temp, 80, 80);
 
             if (listViewCustom1.InvokeRequired)
             {
