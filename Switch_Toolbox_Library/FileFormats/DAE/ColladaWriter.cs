@@ -782,6 +782,8 @@ namespace Toolbox.Library.Collada
         public void CreateVisualNodeSection()
         {
             BeginVisualNodeSection();
+
+            /*
             Writer.WriteStartElement("node");
             Writer.WriteAttributeString("id", "Armature");
             Writer.WriteAttributeString("name", "Armature");
@@ -800,11 +802,13 @@ namespace Toolbox.Library.Collada
                 WriteTransform(new float[] { 1, 1, 1 }, new float[] { 0, 0, 0 }, new float[] { 0, 0, 0 });
             }
 
+            */
+
             foreach (var joint in Joints)
                 if (joint.ParentIndex == -1)
                     RecursivlyWriteJoints(joint);
 
-            Writer.WriteEndElement();
+            // Writer.WriteEndElement();
 
             // write geometry nodes
 
