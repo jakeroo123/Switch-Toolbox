@@ -1,9 +1,6 @@
 # Switch-Toolbox
 A tool to edit many formats of Nintendo Switch, 3DS and Wii U. 
 
-## Differences from original
-Added support for exporting animations to DAE.
-
 ## Changelog 1.0 Experimental / BETA
 https://docs.google.com/spreadsheets/d/16JLhGBJL5U5hpKWspL-pzYIaRL23X1YKEmia6pbsGbc/edit#gid=1386834576
 
