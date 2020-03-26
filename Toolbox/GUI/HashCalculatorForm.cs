@@ -16,6 +16,8 @@ namespace Toolbox
     {
         private bool IsHex => chkUseHex.Checked;
 
+        private bool IsLittleEndian => chkLittleEndian.Checked;
+
         public HashCalculatorForm()
         {
             InitializeComponent();
@@ -23,6 +25,8 @@ namespace Toolbox
             hashTypeCB.Items.Add("NLG_Hash");
             hashTypeCB.Items.Add("FNV64A1");
             hashTypeCB.Items.Add("CRC32");
+            hashTypeCB.Items.Add("BCSV");
+            hashTypeCB.Items.Add("SARC");
 
             hashTypeCB.SelectedIndex = 0;
 
@@ -35,18 +39,27 @@ namespace Toolbox
 
         private void UpdateHash()
         {
-            ulong Hash = CalculateHash(hashTypeCB.GetSelectedText(), stringTB.Text);
+            dynamic Hash = CalculateHash(hashTypeCB.GetSelectedText(), stringTB.Text);
             if (IsHex)
-                resultTB.Text = Hash.ToString("X");
+                resultTB.Text = IsLittleEndian ? LittleEndian(Hash) : Hash.ToString("X");
             else
                 resultTB.Text = Hash.ToString();
+        }
+
+        static string LittleEndian(dynamic number)
+        {
+            byte[] bytes = BitConverter.GetBytes(number);
+            string retval = "";
+            foreach (byte b in bytes)
+                retval += b.ToString("X2");
+            return retval;
         }
 
         private void chkUseHex_CheckedChanged(object sender, EventArgs e) {
             UpdateHash();
         }
 
-        public static ulong CalculateHash(string type, string text)
+        public static dynamic CalculateHash(string type, string text)
         {
             if (type == "NLG_Hash")
                 return StringToHash(text);
@@ -54,7 +67,33 @@ namespace Toolbox
                 return FNV64A1.Calculate(text);
             else if (type == "CRC32")
                 return Toolbox.Library.Security.Cryptography.Crc32.Compute(text);
+            else if (type == "BCSV")
+                return stringToHash(text);
+            else if (type == "SARC")
+                return NameHash(text);
             return 0;
+        }
+
+        public static uint stringToHash(string name)
+        {
+            int hash = 0;
+            for (int i = 0; i < name.Length; i++)
+            {
+                hash *= 0x1F;
+                hash += name[i];
+            }
+
+            return (uint)hash;
+        }
+
+        static uint NameHash(string name)
+        {
+            uint result = 0;
+            for (int i = 0; i < name.Length; i++)
+            {
+                result = name[i] + result * 0x00000065;
+            }
+            return result;
         }
 
         public static uint StringToHash(string name, bool caseSensative = false)
@@ -298,6 +337,10 @@ namespace Toolbox
         }
 
         private void hashTypeCB_SelectedIndexChanged(object sender, EventArgs e) {
+            UpdateHash();
+        }
+
+        private void chkLittleEndian_CheckedChanged(object sender, EventArgs e) {
             UpdateHash();
         }
     }
