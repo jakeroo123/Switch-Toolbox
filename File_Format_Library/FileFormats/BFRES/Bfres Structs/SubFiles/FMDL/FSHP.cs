@@ -174,6 +174,7 @@ namespace Bfres.Structs
 
             ToolStripMenuItem lodMenu = new ToolStripMenuItem("Level Of Detail");
             lodMenu.DropDownItems.Add(new ToolStripMenuItem("Clear LOD Meshes", null, ClearLODMeshes));
+            lodMenu.DropDownItems.Add(new ToolStripMenuItem("Add dummy LOD Meshes", null, GenerateDummyLODMeshesAction));
             Items.Add(lodMenu);
 
             ToolStripMenuItem boundingsMenu = new ToolStripMenuItem("Boundings");
@@ -355,6 +356,38 @@ namespace Bfres.Structs
             Cursor.Current = Cursors.Default;
         }
 
+        private void GenerateDummyLODMeshesAction(object sender, EventArgs args)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+            GenerateDummyLODMeshes();
+            SaveShape(GetResFileU() != null);
+            UpdateVertexData();
+            GenerateBoundingNodes();
+            Cursor.Current = Cursors.Default;
+        }
+
+        public void GenerateDummyLODMeshes()
+        {
+            var mesh = lodMeshes.FirstOrDefault();
+            while (true)
+            {
+                if (lodMeshes.Count >= 3)
+                    break;
+
+                LOD_Mesh lod = new LOD_Mesh();
+                lod.faces.AddRange(mesh.faces);
+                lod.IndexFormat = mesh.IndexFormat;
+                lodMeshes.Add(lod);
+
+                var subMesh = new LOD_Mesh.SubMesh();
+                subMesh.offset = mesh.subMeshes[0].offset;
+                subMesh.size = mesh.subMeshes[0].size;
+                lod.subMeshes.Add(subMesh);
+            }
+
+            CreateNewBoundingBoxes();
+        }
+
         private void GenerateLODMeshes(object sender, EventArgs args)
         {
             Cursor.Current = Cursors.WaitCursor;
@@ -362,9 +395,10 @@ namespace Bfres.Structs
             //Todo add lod generating
 
             CreateNewBoundingBoxes();
-
             SaveShape(GetResFileU() != null);
             UpdateVertexData();
+            GenerateBoundingNodes();
+
             Cursor.Current = Cursors.Default;
         }
 
@@ -375,17 +409,38 @@ namespace Bfres.Structs
             DisplayLODIndex = 0; //Force index to prevent errors
 
             //Clear all but first base mesh
-            for (int i = 0; i < lodMeshes.Count; i++)
+            var meshes = lodMeshes.ToList();
+            for (int i = 0; i < meshes.Count; i++)
             {
                 if (i != 0)
-                    lodMeshes.Remove(lodMeshes[i]);
+                    lodMeshes.Remove(meshes[i]);
             }
 
             CreateNewBoundingBoxes();
-
             SaveShape(GetResFileU() != null);
             UpdateVertexData();
+            GenerateBoundingNodes();
+
             Cursor.Current = Cursors.Default;
+        }
+
+        private void GenerateBoundingNodes()
+        {
+            if (ShapeU != null)
+            {
+                ShapeU.SubMeshBoundingIndices = new List<ushort>();
+                ShapeU.SubMeshBoundingIndices.Add(0);
+                ShapeU.SubMeshBoundingNodes = new List<ResU.BoundingNode>();
+                ShapeU.SubMeshBoundingNodes.Add(new ResU.BoundingNode()
+                {
+                    LeftChildIndex = 0,
+                    NextSibling = 0,
+                    SubMeshIndex = 0,
+                    RightChildIndex = 0,
+                    Unknown = 0,
+                    SubMeshCount = 1,
+                });
+            }
         }
 
         private void RecalculateNormals(object sender, EventArgs args)
