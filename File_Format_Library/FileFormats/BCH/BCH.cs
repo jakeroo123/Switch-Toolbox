@@ -21,7 +21,7 @@ using SPICA.WinForms.Formats;
 
 namespace FirstPlugin.CtrLibrary
 {
-    public class BCH : TreeNodeFile, IContextMenuNode, IFileFormat
+    public class BCH : TreeNodeFile, IContextMenuNode, IFileFormat, ITextureContainer
     {
         public FileType FileType { get; set; } = FileType.Model;
 
@@ -50,12 +50,19 @@ namespace FirstPlugin.CtrLibrary
             }
         }
 
-
         bool DrawablesLoaded = false;
         public override void OnClick(TreeView treeView)
         {
             var propertyGrid = LoadEditor<STPropertyGrid>();
             propertyGrid.LoadProperty(new FileSettings(H3DFile));
+        }
+
+        public bool DisplayIcons => true;
+
+        public List<STGenericTexture> TextureList
+        {
+            get { return Textures; }
+            set { }
         }
 
         public class FileSettings

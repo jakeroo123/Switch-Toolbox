@@ -1378,6 +1378,7 @@ namespace Toolbox
             }
         }
 
+        private List<string> batchExportFileList = new List<string>();
         private void BatchExportModels(string[] files, string outputFolder)
         {
             List<string> Formats = new List<string>();
@@ -1401,6 +1402,7 @@ namespace Toolbox
                         failedFiles.Add($"{file} \n Error:\n {ex} \n");
                     }
                 }
+                batchExportFileList.Clear();
             }
             else
                 return;
@@ -1445,6 +1447,7 @@ namespace Toolbox
                         failedFiles.Add($"{file} \n Error:\n {ex} \n");
                     }
                 }
+                batchExportFileList.Clear();
             }
 
             if (failedFiles.Count > 0)
@@ -1466,7 +1469,7 @@ namespace Toolbox
 
             if (fileFormat is STGenericTexture && exportMode == ExportMode.Textures) {
                 string name = ((STGenericTexture)fileFormat).Text;
-                ExportTexture(((STGenericTexture)fileFormat), $"{outputFolder}/{name}.{extension}");
+                ExportTexture(((STGenericTexture)fileFormat), $"{outputFolder}/{name}", extension);
             }
             else if (fileFormat is IArchiveFile)
                 SearchArchive(settings, (IArchiveFile)fileFormat, extension, outputFolder, exportMode);
@@ -1483,11 +1486,18 @@ namespace Toolbox
                 }
 
                 foreach (STGenericTexture tex in ((ITextureContainer)fileFormat).TextureList) {
-                    ExportTexture(tex, $"{outputFolder}/{tex.Text}.{extension}");
+                    ExportTexture(tex, $"{outputFolder}/{tex.Text}", extension);
                 }
             }
             else if (fileFormat is IExportableModel && exportMode == ExportMode.Models)
             {
+                string name = fileFormat.FileName.Split('.').FirstOrDefault();
+                if (settings.SeperateTextureContainers)
+                    outputFolder = Path.Combine(outputFolder, name);
+
+                if (!Directory.Exists(outputFolder))
+                    Directory.CreateDirectory(outputFolder);
+
                 DAE.ExportSettings daesettings = new DAE.ExportSettings();
                 daesettings.SuppressConfirmDialog = true;
 
@@ -1496,8 +1506,14 @@ namespace Toolbox
                 model.Objects = ((IExportableModel)fileFormat).ExportableMeshes;
                 var textures = ((IExportableModel)fileFormat).ExportableTextures.ToList();
                 var skeleton = ((IExportableModel)fileFormat).ExportableSkeleton;
-                string name = Path.GetFileNameWithoutExtension(fileFormat.FileName);
-               // DAE.Export($"{outputFolder}/{name}.{extension}", daesettings, model, textures, skeleton);
+                string modelname = Path.GetFileNameWithoutExtension(fileFormat.FileName);
+                string path = $"{outputFolder}/{modelname}";
+                path = Utils.RenameDuplicateString(batchExportFileList, path, 0, 3);
+                batchExportFileList.Add(path);
+
+                path = $"{path}.{extension}";
+
+                DAE.Export(path, daesettings, model, textures, skeleton);
             }
 
             fileFormat.Unload();
@@ -1509,7 +1525,11 @@ namespace Toolbox
             Textures,
         }
 
-        private void ExportTexture(STGenericTexture tex, string filePath) {
+        private void ExportTexture(STGenericTexture tex, string filePath, string ext) {
+            filePath = Utils.RenameDuplicateString(batchExportFileList, filePath, 0, 3);
+            batchExportFileList.Add(filePath);
+            filePath = $"{filePath}.{ext}";
+
             tex.Export(filePath);
         }
 
