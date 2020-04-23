@@ -67,6 +67,8 @@ namespace Toolbox.Library
         {
             if (Materials == null)
                 Materials = new List<STGenericMaterial>();
+            if (skeleton != null && skeleton.BoneIndices != null)
+                NodeArray = skeleton.BoneIndices.ToList();
 
             List<string> failedTextureExport = new List<string>();
 
@@ -110,6 +112,7 @@ namespace Toolbox.Library
                             try
                             {
                                 var bitmap = Textures[i].GetBitmap();
+                                bitmap = Textures[i].GetComponentBitmap(bitmap);
                                 if (bitmap != null)
                                 {
                                     string textureName = Textures[i].Text;
