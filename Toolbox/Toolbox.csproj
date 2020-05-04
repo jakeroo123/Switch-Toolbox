@@ -50,9 +50,6 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AssimpNet, Version=4.1.0.0, Culture=neutral, PublicKeyToken=0d51b391f59f42a6, processorArchitecture=MSIL">
-      <HintPath>..\packages\AssimpNet.4.1.0\lib\net40\AssimpNet.dll</HintPath>
-    </Reference>
     <Reference Include="DirectXTexNet, Version=1.0.0.3, Culture=neutral, PublicKeyToken=67e4f5ed452a4f5d, processorArchitecture=MSIL">
       <HintPath>..\packages\DirectXTexNet.1.0.0-rc3\lib\net40\DirectXTexNet.dll</HintPath>
     </Reference>
@@ -367,9 +364,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\BrawlboxHelper\BrawlboxHelper.csproj">
-      <Project>{fa690685-3370-44d5-b138-f538c8d4c2a3}</Project>
-      <Name>BrawlboxHelper</Name>
+    <ProjectReference Include="..\File_Format_Library\File_Format_Library.csproj">
+      <Project>{a11705cf-a6a3-41c3-875a-e1cfd8080f09}</Project>
+      <Name>File_Format_Library</Name>
     </ProjectReference>
     <ProjectReference Include="..\Switch_Toolbox_Library\Toolbox_Library.csproj">
       <Project>{96820047-2a39-4e5a-bfa4-e84fff5c66cf}</Project>
