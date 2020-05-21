@@ -74,13 +74,7 @@ namespace FirstPlugin
 
         public STSkeleton ExportableSkeleton
         {
-            get
-            {
-                STSkeleton skeleton = new STSkeleton();
-                foreach (var model in BFRESRender.models)
-                    skeleton.bones.AddRange(model.Skeleton.bones);
-                return skeleton;
-            }
+            get { return BFRESRender.models[0].Skeleton; }
         }
 
         public override string ExportFilter => Utils.GetAllFilters(new BFRES());
@@ -423,6 +417,8 @@ namespace FirstPlugin
         private bool DrawablesLoaded = false;
         public void LoadEditors(object SelectedSection)
         {
+            Console.WriteLine($"SelectedSection {SelectedSection}");
+
             BfresEditor bfresEditor = (BfresEditor)LibraryGUI.GetActiveContent(typeof(BfresEditor));
             bool HasModels = false;
             bool hasShapes = HasShapes();
@@ -625,7 +621,6 @@ namespace FirstPlugin
             }
             else
             {
-       
                 if (SelectedSection is BFRES)
                 {
                     STPropertyGrid editor = (STPropertyGrid)bfresEditor.GetActiveEditor(typeof(STPropertyGrid));
