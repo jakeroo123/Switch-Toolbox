@@ -311,6 +311,7 @@ namespace Toolbox.Library.Forms
         public void LoadImage(STGenericTexture texture, int arrayLevel = 0)
         {
             editBtn.Enabled = false;
+            editToolStripMenuItem.Enabled = false;
 
             //Disable the file watcher when an image is switched
             FileWatcher.EnableRaisingEvents = false;
@@ -336,6 +337,7 @@ namespace Toolbox.Library.Forms
             if (ActiveTexture.CanEdit)
             {
                 editBtn.Enabled = true;
+                editToolStripMenuItem.Enabled = true;
                 editBtn.BackgroundImage = Properties.Resources.Edit;
             }
             else
@@ -1097,11 +1099,9 @@ namespace Toolbox.Library.Forms
                     SaveAndApplyImage(new Bitmap(FileName), DecodeTextureBack);
                 }
             }
-            else
-            {
-                FileWatcher.Filter = "";
-                FileWatcher.EnableRaisingEvents = false;
-            }
+
+            FileWatcher.Filter = "";
+            FileWatcher.EnableRaisingEvents = false;
         }
 
         public void SaveAndApplyImage(Bitmap image, bool DecodeBack)
