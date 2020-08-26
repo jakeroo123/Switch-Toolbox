@@ -61,8 +61,8 @@ namespace Bfres.Structs
                             InterType = InterpolationType.HERMITE,
                             Frame = (int)animCurve.Frames[i],
                             Value = coef0,
-                           // Slope1 = slopes[0],
-                          //  Slope2 = slopes[1],
+                            Slope1 = slopes[0],
+                            Slope2 = slopes[1],
                         });
                         break;
                     case ResU.AnimCurveType.Linear: //2 elements are stored for linear
@@ -106,30 +106,34 @@ namespace Bfres.Structs
                 for (int i = 0; i < curve.Frames.Length; i++)
                 {
                     var coef0 = curve.Keys[i, 0] * curve.Scale + curve.Offset;
-                    var coef1 = curve.Keys[i, 1] * curve.Scale + curve.Offset;
-                    var coef2 = curve.Keys[i, 2] * curve.Scale + curve.Offset;
-                    var coef3 = curve.Keys[i, 3] * curve.Scale + curve.Offset;
+                    var coef1 = curve.Keys[i, 1] * curve.Scale;
+                    var coef2 = curve.Keys[i, 2] * curve.Scale;
+                    var coef3 = curve.Keys[i, 3] * curve.Scale;
                     float time = 0;
                     float delta = 0;
+                    float invTime = 1;
                     if (i < curve.Frames.Length - 1)
                     {
                         var nextValue = curve.Keys[i + 1, 0] * curve.Scale + curve.Offset;
                         delta = nextValue - coef0;
                         time = curve.Frames[i + 1] - curve.Frames[i];
+                        invTime = 1f / time;
                     }
 
-                    var slopeData = CurveInterpolationHelper.GetCubicSlopes(time, delta,
-                        new float[4] { coef0, coef1, coef2, coef3, });
+                    float p0 = coef0;
+                    float p1 = coef0 + (coef1 + coef3) / 3f;
+                    float p2 = coef0 + (coef1 + coef1 + coef2) / 3f;
+                    float p3 = coef0 + delta;
 
                     if (index == i)
                     {
-                        OutSlope = slopeData[1];
+                        OutSlope = (p1 - p0) * 3f * invTime;
                         return new float[2] { InSlope, OutSlope };
                     }
 
-                    //The previous inslope is used
-                    InSlope = slopeData[0];
+                    InSlope = (p3 - p2) * 3f * invTime;
                 }
+
             }
 
             return slopes;
@@ -145,30 +149,34 @@ namespace Bfres.Structs
                 for (int i = 0; i < curve.Frames.Length; i++)
                 {
                     var coef0 = curve.Keys[i, 0] * curve.Scale + curve.Offset;
-                    var coef1 = curve.Keys[i, 1] * curve.Scale + curve.Offset;
-                    var coef2 = curve.Keys[i, 2] * curve.Scale + curve.Offset;
-                    var coef3 = curve.Keys[i, 3] * curve.Scale + curve.Offset;
+                    var coef1 = curve.Keys[i, 1] * curve.Scale;
+                    var coef2 = curve.Keys[i, 2] * curve.Scale;
+                    var coef3 = curve.Keys[i, 3] * curve.Scale;
                     float time = 0;
                     float delta = 0;
+                    float invTime = 1;
                     if (i < curve.Frames.Length - 1)
                     {
                         var nextValue = curve.Keys[i + 1, 0] * curve.Scale + curve.Offset;
                         delta = nextValue - coef0;
                         time = curve.Frames[i + 1] - curve.Frames[i];
+                        invTime = 1f / time;
                     }
 
-                    var slopeData = CurveInterpolationHelper.GetCubicSlopes(time, delta,
-                        new float[4] { coef0, coef1, coef2, coef3, });
+                    float p0 = coef0;
+                    float p1 = coef0 + (coef1 + coef3) / 3f;
+                    float p2 = coef0 + (coef1 + coef1 + coef2) / 3f;
+                    float p3 = coef0 + delta;
 
                     if (index == i)
                     {
-                        OutSlope = slopeData[1];
+                        OutSlope = (p1 - p0) * 3f * invTime;
                         return new float[2] { InSlope, OutSlope };
                     }
 
-                    //The previous inslope is used
-                    InSlope = slopeData[0];
+                    InSlope = (p3 - p2) * 3f * invTime;
                 }
+
             }
 
             return slopes;
@@ -264,17 +272,14 @@ namespace Bfres.Structs
                         var coef3 = animCurve.Offset + (animCurve.Keys[i, 3] * animCurve.Scale);
                         var slopes = GetSlopes(animCurve, i);
 
-                        var inSlope = slopes[0] * animCurve.Scale + animCurve.Offset;
-                        var outSlope = slopes[1] * animCurve.Scale + animCurve.Offset;
-
                         track.Keys.Add(new Animation.KeyFrame()
                         {
                             IsKeyed = true,
                             InterType = InterpolationType.HERMITE,
                             Frame = (int)animCurve.Frames[i],
                             Value = coef0,
-                            Slope1 = inSlope,
-                            Slope2 = outSlope,
+                            Slope1 = slopes[0],
+                            Slope2 = slopes[1],
                         });
                         break;
                     case AnimCurveType.Linear: //2 elements are stored for linear

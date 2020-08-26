@@ -335,7 +335,7 @@ namespace Toolbox.Library.Animations
                         case InterpolationType.STEP: return LK.Value;
                         case InterpolationType.LINEAR: return InterpolationHelper.Lerp(LK.Value, RK.Value, Weight);
                         case InterpolationType.HERMITE:
-                            float val = Hermite(frame, LK.Frame, RK.Frame, LK.In, LK.Out != -1 ? LK.Out : RK.In, LK.Value, RK.Value);
+                            float val = Hermite(frame, LK.Frame, RK.Frame, LK.Slope2, RK.Slope1, LK.Value, RK.Value);
                             return val;
                     }
                 }
@@ -562,14 +562,23 @@ namespace Toolbox.Library.Animations
 
         public static float Hermite(float frame, float frame1, float frame2, float outSlope, float inSlope, float val1, float val2)
         {
-            if (frame == frame1) return val1;
-            if (frame == frame2) return val2;
+            if (frame <= frame1) return val1;
+            if (frame >= frame2) return val2;
 
             float distance = frame - frame1;
-            float invDuration = 1f / (frame2 - frame1);
+            float duration = (frame2 - frame1);
+            float invDuration = 1f / (duration);
             float t = distance * invDuration;
             float t1 = t - 1f;
-            return (val1 + ((((val1 - val2) * ((2f * t) - 3f)) * t) * t)) + ((distance * t1) * ((t1 * outSlope) + (t * inSlope)));
+
+            float h00 = (2f * t * t * t) - (3f * t * t) + 1f;
+            float h10 = (t * t * t) - (2f * t * t) + t;
+            float h01 = (-2f * t * t * t) + (3f * t * t);
+            float h11 = (t * t * t) - (t * t);
+
+            return (h00 * val1) + (h10 * outSlope * duration) + (h01 * val2) + (h11 * inSlope * duration);
+
+            // (val1 + ((((val1 - val2) * ((2f * t) - 3f)) * t) * t)) + ((distance * t1) * ((t1 * outSlope) + (t * inSlope)))
         }
 
         public static float Lerp(float av, float bv, float v0, float v1, float t)
