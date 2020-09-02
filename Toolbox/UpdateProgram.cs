@@ -6,8 +6,9 @@ using Octokit;
 using System.IO;
 using System.Net;
 using System.Diagnostics;
-using System.Security.Cryptography;
+using System.Linq;
 using Toolbox.Library;
+using System.Reflection;
 
 namespace Toolbox
 {
@@ -30,6 +31,18 @@ namespace Toolbox
                 GetReleases(client).Wait();
                 GetCommits(client).Wait();
 
+                var asssemblyVersion = Assembly.GetExecutingAssembly().GetName().Version;
+                var version = string.Concat(asssemblyVersion.ToString().Reverse().Skip(2).Reverse());
+
+                var lastestRelease = Releases.FirstOrDefault(x => x.Name.Contains($"v{version}"));
+                if (lastestRelease != null)
+                {
+                    Runtime.ProgramVersion = lastestRelease.TagName;
+                    Runtime.CompileDate = lastestRelease.Assets[0].UpdatedAt.ToString();
+                    Runtime.CommitInfo = lastestRelease.TargetCommitish;
+                    return;
+                }
+
                 foreach (Release latest in Releases)
                 {
                     if (latest.Assets?.Count == 0)
@@ -42,23 +55,10 @@ namespace Toolbox
                         latest.TargetCommitish,
                         latest.Assets[0].UpdatedAt.ToString());
 
-                    if (Runtime.CompileDate != latest.Assets[0].UpdatedAt.ToString())
-                    {
-                        LatestReleaseTime = latest.Assets[0].UpdatedAt.DateTime;
-                        LatestRelease = latest;
-                        CanUpdate = true;
+                    LatestReleaseTime = latest.Assets[0].UpdatedAt.DateTime;
+                    LatestRelease = latest;
+                    CanUpdate = true;
 
-                        /*  DownloadRelease();
-                          if (CanUpdate)
-                          {
-                              LatestReleaseTime = latest.Assets[0].UpdatedAt.DateTime;
-                              LatestRelease = latest;
-                          }
-                          else
-                          {
-
-                          }*/
-                    }
                     break;
                 }
 
