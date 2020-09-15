@@ -611,10 +611,12 @@ namespace FirstPlugin
 
                             reader.Seek(section.BinaryDataOffset + section.Position, SeekOrigin.Begin);
                             BinaryData = new BFRES();
+                            ((BFRES)BinaryData).IsParticlePrimitive = true;
                             ((BFRES)BinaryData).FileName = "model.bfres";
                             ((BFRES)BinaryData).Load(new MemoryStream(reader.ReadBytes((int)section.SectionSize)));
                             ((BFRES)BinaryData).IFileInfo = new IFileInfo();
                             ((BFRES)BinaryData).IFileInfo.InArchive = true;
+                            ((BFRES)BinaryData).CanSave = false;
                             Nodes.Add(((BFRES)BinaryData));
                         }
                         break;
@@ -654,7 +656,7 @@ namespace FirstPlugin
                     case "G3PR":
                         {
                             var mem = new System.IO.MemoryStream();
-                            if (BinaryData != null)
+                            if (BinaryData != null && ((BFRES)BinaryData).CanSave)
                             {
                                 ((BFRES)BinaryData).Save(mem);
                                 SaveHeader(writer, header, mem.ToArray(), 4096);

@@ -271,13 +271,17 @@ namespace Toolbox
 
         public void OpenFile(string FileName, bool InActiveEditor = false)
         {
-            if (File.Exists(FileName))
-                SaveRecentFile(FileName);
+            if (!File.Exists(FileName))
+                return;
+
+            SaveRecentFile(FileName);
 
             object file = STFileLoader.OpenFileFormat(FileName);
-
             if (file == null) //File might not be supported so return
+            {
+                STConsole.WriteLine($"{FileName} not supported.");
                 return;
+            }
 
             Type objectType = file.GetType();
 
@@ -412,6 +416,7 @@ namespace Toolbox
                                 formats.Add((IFileFormat)fileFormat);
                             }
                             sfd.Filter = Utils.GetAllFilters(formats);
+                            sfd.DefaultExt = Path.GetExtension(format.FilePath);
 
                             if (sfd.ShowDialog() != DialogResult.OK)
                                 return;
@@ -434,6 +439,7 @@ namespace Toolbox
                             SaveFileDialog sfd = new SaveFileDialog();
                             sfd.Filter = Utils.GetAllFilters(format);
                             sfd.FileName = format.FileName;
+                            sfd.DefaultExt = Path.GetExtension(format.FilePath);
 
                             if (sfd.ShowDialog() != DialogResult.OK)
                                 return;

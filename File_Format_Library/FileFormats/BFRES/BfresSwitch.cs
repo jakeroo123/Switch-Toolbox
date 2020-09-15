@@ -743,7 +743,7 @@ namespace FirstPlugin
                 if (mat.ShaderAssign.ShaderArchiveName == "Wii_UBER" || mat.ShaderAssign.ShaderArchiveName == "Block_UBER")
                     Runtime.activeGame = Runtime.ActiveGame.MK8D;
 
-                if (mat.ShaderAssign.ShaderArchiveName == "base" || mat.ShaderAssign.ShaderArchiveName == "ui") {
+                if (mat.ShaderAssign.ShaderArchiveName == "base" || mat.ShaderAssign.ShaderArchiveName == "ui" || mat.ShaderAssign.ShaderArchiveName == "chara") {
                     Runtime.activeGame = Runtime.ActiveGame.MK8D;
                 }
 
@@ -796,6 +796,37 @@ namespace FirstPlugin
                         texture.Type = MatTexture.TextureType.Shadow;
                     }
                 }
+                else if (Runtime.activeGame == Runtime.ActiveGame.BOTW) {
+                    if (useSampler == "_a0")
+                    {
+                        m.HasDiffuseMap = true;
+                        texture.Type = MatTexture.TextureType.Diffuse;
+                    }
+                    else if (useSampler == "_n0")
+                    {
+                        m.HasNormalMap = true;
+                        texture.Type = MatTexture.TextureType.Normal;
+                    }
+                    else if (texture.SamplerName == "_e0")
+                    {
+                        m.HasEmissionMap = true;
+                        texture.Type = MatTexture.TextureType.Emission;
+                    }
+                    else if (texture.SamplerName == "_ao0")
+                    {
+                        m.HasSpecularMap = true;
+                        texture.Type = MatTexture.TextureType.AO;
+                    }
+                    else if (texture.SamplerName == "_s0")
+                    {
+                        m.HasSpecularMap = true;
+                        texture.Type = MatTexture.TextureType.Specular;
+                    }
+                    else if (texture.SamplerName == "_gn0") //Damage
+                    {
+                      
+                    }
+                 }
                 else if (mat.ShaderAssign.ShaderArchiveName == "ssg")
                 {
                     bool IsAlbedo0 = texture.SamplerName == "_a0";
