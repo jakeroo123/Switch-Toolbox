@@ -62,9 +62,13 @@ namespace LayoutBXLYT
                 //Adjust necessary parameters if the user changes the name
                 if (name != null && LayoutFile != null)
                 {
+                    Console.WriteLine($"LayoutFile {name} {LayoutFile.PaneLookup.ContainsKey(name)}");
+
                     //Adjust name table entry
-                    if (LayoutFile != null && LayoutFile.PaneLookup.ContainsKey(name))
+                    if (LayoutFile.PaneLookup.ContainsKey(name))
                         LayoutFile.PaneLookup.Remove(name);
+
+                    Console.WriteLine($"LayoutFileR {name} {LayoutFile.PaneLookup.ContainsKey(name)}");
 
                     //Adjust material reference
                     if (this is IPicturePane)
@@ -91,6 +95,11 @@ namespace LayoutBXLYT
 
                 if (LayoutFile != null && !LayoutFile.PaneLookup.ContainsKey(name))
                     LayoutFile.PaneLookup.Add(name, this);
+
+                Console.WriteLine($"test {name}");
+
+                if (LayoutFile != null)
+                    Console.WriteLine($"LayoutFileN {name} {LayoutFile.PaneLookup.ContainsKey(name)}");
             }
         }
 
@@ -1829,8 +1838,19 @@ namespace LayoutBXLYT
 
     public class BxlanPAI1 : SectionCommon
     {
-        public ushort FrameSize;
-        public bool Loop;
+        [DisplayName("Frame Count"), CategoryAttribute("Frames")]
+        public ushort FrameSize { get; set; }
+
+        [DisplayName("Loop"), CategoryAttribute("Frames")]
+        public bool Loop { get; set; }
+
+        [Editor(@"System.Windows.Forms.Design.StringCollectionEditor," +
+           "System.Design, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a",
+          typeof(System.Drawing.Design.UITypeEditor))]
+        [DisplayName("Textures"), CategoryAttribute("Textures")]
+        public List<string> Textures { get; set; } = new List<string>();
+
+        public List<BxlanPaiEntry> Entries = new List<BxlanPaiEntry>();
 
         public bool ContainsEntry(string name)
         {
@@ -1841,13 +1861,6 @@ namespace LayoutBXLYT
         {
             return new BxlanPaiEntry();
         }
-
-        [Editor(@"System.Windows.Forms.Design.StringCollectionEditor," +
-           "System.Design, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a",
-          typeof(System.Drawing.Design.UITypeEditor))]
-        public List<string> Textures { get; set; } = new List<string>();
-
-        public List<BxlanPaiEntry> Entries = new List<BxlanPaiEntry>();
     }
 
     public class BxlanPaiEntry
@@ -2322,6 +2335,7 @@ namespace LayoutBXLYT
             if (!PaneLookup.ContainsKey(pane.Name))
                 PaneLookup.Add(pane.Name, pane);
 
+            pane.LayoutFile = this;
             pane.Parent = parent;
             parent.Childern.Add(pane);
             parent.NodeWrapper.Nodes.Add(pane.NodeWrapper);
