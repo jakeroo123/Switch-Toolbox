@@ -98,6 +98,11 @@ namespace LayoutBXLYT.Cafe
         [TypeConverter(typeof(ExpandableObjectConverter))]
         public FontShadowParameter FontShadowParameter { get; set; }
 
+        public string ToJson()
+        {
+            return Newtonsoft.Json.JsonConvert.SerializeObject(this, Newtonsoft.Json.Formatting.Indented);
+        }
+
         private uint flags;
         private int unknown;
 
@@ -242,6 +247,8 @@ namespace LayoutBXLYT.Cafe
 
         public void Write(FileWriter writer, LayoutHeader header)
         {
+            Console.WriteLine(ToJson());
+
             long flagPos = 0;
             writer.WriteString(Name, 0x1C);
             if (header.VersionMajor >= 8)
@@ -261,6 +268,13 @@ namespace LayoutBXLYT.Cafe
                 writer.Write(flags);
             }
 
+            if (TextureMaps?.Length > 0 && TexCoordGens?.Length == 0)
+            {
+                TexCoordGens = new BxlytTexCoordGen[TextureMaps.Length];
+                for (int i = 0; i < TextureMaps?.Length; i++)
+                    TexCoordGens[i] = new TexCoordGen();
+            }
+
             flags = 0;
             for (int i = 0; i < TextureMaps.Length; i++)
             {
@@ -277,7 +291,7 @@ namespace LayoutBXLYT.Cafe
             for (int i = 0; i < TexCoordGens.Length; i++)
             {
                 flags += Bit.BitInsert(1, 1, 2, 26);
-                ((TexCoordGen)TexCoordGens[i]).Write(writer);
+                ((TexCoordGen)TexCoordGens[i]).Write(writer, (BxlytHeader)header);
             }
 
             for (int i = 0; i < TevStages.Length; i++)

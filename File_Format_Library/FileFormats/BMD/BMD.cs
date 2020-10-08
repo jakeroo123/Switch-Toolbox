@@ -34,7 +34,8 @@ namespace FirstPlugin
             using (var reader = new Toolbox.Library.IO.FileReader(stream, true))
             {
                 reader.SetByteOrder(true);
-                bool IsBMD = reader.ReadUInt32() == 0x4A334432;
+                uint magic = reader.ReadUInt32();
+                bool IsBMD = magic == 0x4A334432 || magic == 0x3244334A;
                 reader.Position = 0;
 
                 return IsBMD;
@@ -334,8 +335,8 @@ namespace FirstPlugin
         public ToolStripItem[] GetContextMenuItems()
         {
             List<ToolStripItem> Items = new List<ToolStripItem>();
-            Items.Add(new STToolStipMenuItem("Save", null, SaveAction, Keys.Control | Keys.S));
-            Items.Add(new STToolStripSeparator());
+            //Items.Add(new STToolStipMenuItem("Save", null, SaveAction, Keys.Control | Keys.S));
+            //Items.Add(new STToolStripSeparator());
             Items.Add(new STToolStipMenuItem("Export", null, ExportAction, Keys.Control | Keys.E) );
             Items.Add(new STToolStipMenuItem("Replace", null, ReplaceAction, Keys.Control | Keys.R) { Enabled = false});
             return Items.ToArray();
@@ -381,8 +382,8 @@ namespace FirstPlugin
                     arguments.texheaders_path = settings.TexturePath;
                     arguments.materials_path = settings.MaterialPath;
 
-                    var model = Model.Load(arguments);
-                    LoadBMD(model);
+                    //var model = Model.Load(arguments);
+                    //LoadBMD(model);
                 }
             }
         }
@@ -406,7 +407,7 @@ namespace FirstPlugin
 
         public void Save(System.IO.Stream stream)
         {
-            BMDFile.ExportBMD(stream);
+            BMDFile.Save(stream, FileName.EndsWith(".bdl"));
         }
     }
 }
