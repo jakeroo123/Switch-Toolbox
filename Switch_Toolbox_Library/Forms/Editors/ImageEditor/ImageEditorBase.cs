@@ -1387,6 +1387,7 @@ namespace Toolbox.Library.Forms
             viewer.Show();
         }
 
+
         private STColorDialog colorDlg;
         private bool dialogActive = false;
         private void imageBGComboBox_MouseClick(object sender, MouseEventArgs e)

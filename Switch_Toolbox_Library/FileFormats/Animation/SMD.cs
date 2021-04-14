@@ -288,8 +288,7 @@ namespace Toolbox.Library.Animations
 
         public static void Save(STSkeletonAnimation anim, String Fname)
         {
-            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
-            customCulture.NumberFormat.NumberDecimalSeparator = ".";
+            System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
             STSkeleton Skeleton = anim.GetActiveSkeleton();
 
@@ -333,8 +332,7 @@ namespace Toolbox.Library.Animations
 
         public static void Save(Animation anim, STSkeleton Skeleton, String Fname)
         {
-            System.Globalization.CultureInfo customCulture = (System.Globalization.CultureInfo)System.Threading.Thread.CurrentThread.CurrentCulture.Clone();
-            customCulture.NumberFormat.NumberDecimalSeparator = ".";
+            System.Threading.Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
             using (System.IO.StreamWriter file = new System.IO.StreamWriter(@Fname))
             {
